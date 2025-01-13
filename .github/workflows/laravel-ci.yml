@@ -1,52 +1,104 @@
-name: Laravel CI
+name: Laravel CI with Custom PHP 8.4 Extensions
 
 on:
   push:
     branches:
-      - master
-      - develop
+      - main
   pull_request:
     branches:
-      - master
-      - develop
+      - main
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: laravel
+          MYSQL_USER: sail
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+      selenium:
+        image: selenium/standalone-chromium
+        ports:
+          - 4444:4444
+
+      minio:
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
+          - 8900:8900
+        env:
+          MINIO_ROOT_USER: sail
+          MINIO_ROOT_PASSWORD: root
+        options: >-
+          --health-cmd="curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Copy .env.test to .env
-      run: cp .env.test .env
+    - name: Set up PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: >
+          cli, dev, gd, curl, imap, mysql, mbstring, xml, zip,
+          bcmath, soap, intl, readline, ldap, msgpack,
+          igbinary, redis, memcached, pcov, imagick
+        tools: composer
+        coverage: none
 
-    - name: Set up Docker Compose
-      run: docker compose up --build -d
+    - name: Install Node.js 22
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
 
-    - name: Get Laravel container name
-      id: laravel_container
-      run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
-
-    - name: List Docker networks
-      run: docker network ls
-
-    - name: Inspect Docker containers
-      run: docker ps -a
-
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
-        docker exec $CONTAINER_ID composer install
-        docker exec $CONTAINER_ID cp .env.test .env
-        docker exec $CONTAINER_ID php artisan optimize
-        docker exec $CONTAINER_ID npm install
-        docker exec $CONTAINER_ID npm run build
+        composer install --no-progress --prefer-dist --optimize-autoloader
+        npm install
+        npm run build
 
-    - name: Generate application key
-      run: docker exec $CONTAINER_ID php artisan key:generate
+    - name: Set up Environment File
+      run: |
+        cp .env.test .env
+        php artisan key:generate
 
-    - name: Run migrations
-      run: docker exec $CONTAINER_ID php artisan migrate --force
+    - name: Debug Environment Variables
+      run: cat .env
 
-    - name: Run tests
-      run: docker exec $CONTAINER_ID php artisan test
+    - name: Run Migrations
+      run: php artisan migrate --force
+
+    - name: Run Tests
+      run: php artisan test
