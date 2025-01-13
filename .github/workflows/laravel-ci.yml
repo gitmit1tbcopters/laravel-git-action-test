@@ -21,9 +21,6 @@ jobs:
     - name: Copy .env.test to .env
       run: cp .env.test .env
 
-    - name: Verify Docker Compose
-      run: docker compose version
-
     - name: Set up Docker Compose
       run: docker compose up --build -d
 
@@ -37,7 +34,12 @@ jobs:
     - name: Inspect Docker containers
       run: docker ps -a
 
-
+    - name: Wait for MariaDB
+      run: |
+        until docker exec laravel.test php artisan migrate:status > /dev/null 2>&1; do
+          echo "Waiting for MariaDB to be ready..."
+          sleep 5
+        done
 
     - name: Install dependencies
       run: |
@@ -49,10 +51,7 @@ jobs:
       run: docker exec $CONTAINER_ID php artisan key:generate
 
     - name: Run migrations
-      run: docker exec $CONTAINER_ID php artisan migrate --force
-
-    - name: Inspect MariaDB logs
-      run: docker logs mariadb
+      run: docker exec -it $CONTAINER_ID php artisan migrate --force
 
     - name: Run tests
-      run: docker exec $CONTAINER_ID php artisan test
+      run: docker exec -it $CONTAINER_ID php artisan test
