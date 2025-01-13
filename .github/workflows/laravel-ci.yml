@@ -25,10 +25,8 @@ jobs:
         ports:
           - 3307:3306
         options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+          --memory=512m
+          --cpus=1
 
       redis:
         image: redis:alpine
@@ -60,10 +58,8 @@ jobs:
           MINIO_ROOT_USER: sail
           MINIO_ROOT_PASSWORD: root
         options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+          --memory=512m
+          --cpus=1
 
     steps:
     - name: Checkout code
