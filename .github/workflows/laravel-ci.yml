@@ -34,6 +34,9 @@ jobs:
     - name: Inspect Docker containers
       run: docker ps -a
 
+    - name: Inspect Docker networks
+      run: docker network inspect laravel_network
+
     - name: Wait for MariaDB
       run: |
         until docker exec laravel.test php artisan migrate:status > /dev/null 2>&1; do
