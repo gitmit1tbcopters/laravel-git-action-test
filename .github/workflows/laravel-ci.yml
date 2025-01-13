@@ -31,12 +31,14 @@ jobs:
       id: laravel_container
       run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
 
-    - name: Wait for MariaDB
-      run: |
-        until docker exec laravel.test mysqladmin ping -h mariadb --silent; do
-          echo "Waiting for MariaDB to be ready..."
-          sleep 1
-        done
+    - name: List Docker networks
+      run: docker network ls
+
+    - name: Inspect Docker containers
+      run: docker ps -a
+
+    - name: Inspect MariaDB logs
+      run: docker logs mariadb
 
     - name: Install dependencies
       run: |
