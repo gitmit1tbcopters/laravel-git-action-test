@@ -47,7 +47,7 @@ jobs:
         docker exec laravel.test npm run build
 
     - name: Set environment variables
-      run: docker exec laravel.test cp .env.test .env
+      run: docker exec laravel.test sh -c "rm -f .env && cp .env.test .env"
 
     - name: Generate application key
       run: docker exec laravel.test php artisan key:generate
