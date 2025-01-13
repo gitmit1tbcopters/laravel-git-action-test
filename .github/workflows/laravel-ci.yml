@@ -24,8 +24,14 @@ jobs:
     - name: Verify Docker Compose
       run: docker compose version
 
+    - name: Build Docker images
+      run: docker compose build
+
     - name: Set up Docker Compose
       run: docker compose up -d
+
+    - name: List running containers
+      run: docker ps
 
     - name: Install dependencies
       run: |
@@ -41,12 +47,3 @@ jobs:
 
     - name: Run tests
       run: docker exec laravel.test php artisan test
-
-  deploy:
-    if: github.ref == 'refs/heads/master'
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Deploy to production
-      run: |
-        echo "Deployment script or command goes here."
