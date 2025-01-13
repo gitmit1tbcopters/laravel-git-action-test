@@ -27,12 +27,16 @@ jobs:
     - name: Set up Docker Compose
       run: docker compose up --build -d
 
-    - name: List running containers
-      run: docker ps
-
     - name: Get Laravel container name
       id: laravel_container
       run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
+
+    - name: Wait for MariaDB
+      run: |
+        until docker exec laravel.test mysqladmin ping -h mariadb --silent; do
+          echo "Waiting for MariaDB to be ready..."
+          sleep 1
+        done
 
     - name: Install dependencies
       run: |
