@@ -16,7 +16,7 @@ jobs:
 
     services:
       mariadb:
-        image: mariadb:11
+        image: mariadb:10
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: laravel
@@ -70,7 +70,7 @@ jobs:
       with:
         php-version: '8.4'
         extensions: >
-          cli, dev, gd, curl, imap, mysql, mbstring, xml, zip,
+          gd, curl, imap, mysql, mbstring, xml, zip,
           bcmath, soap, intl, readline, ldap, msgpack,
           igbinary, redis, memcached, pcov, imagick
         tools: composer
