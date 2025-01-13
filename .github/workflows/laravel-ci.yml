@@ -14,25 +14,12 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # services:
-    #   mariadb:
-    #     image: mariadb:11
-    #     env:
-    #       MYSQL_ROOT_PASSWORD: root
-    #       MYSQL_DATABASE: laravel
-    #       MYSQL_USER: sail
-    #       MYSQL_PASSWORD: password
-    #     ports:
-    #       - 3306:3306
-    #     options: >-
-    #       --health-cmd="mysqladmin ping --silent"
-    #       --health-interval=10s
-    #       --health-timeout=5s
-    #       --health-retries=3
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+
+    - name: Copy .env.test to .env
+      run: cp .env.test .env
 
     - name: Verify Docker Compose
       run: docker compose version
@@ -45,9 +32,6 @@ jobs:
         docker exec laravel.test composer install
         docker exec laravel.test npm install
         docker exec laravel.test npm run build
-
-    - name: Set environment variables
-      run: docker exec laravel.test sh -c "rm -f .env && cp .env.test .env"
 
     - name: Generate application key
       run: docker exec laravel.test php artisan key:generate
