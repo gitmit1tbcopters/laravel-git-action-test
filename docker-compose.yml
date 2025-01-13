@@ -1,6 +1,7 @@
 name: laravel-git-action-test
 services:
     laravel.test:
+        container_name: laravel.test
         build:
             context: ./docker/8.4
             dockerfile: Dockerfile
@@ -31,7 +32,9 @@ services:
             - selenium
             - mariadb
             - minio
+
     redis:
+        container_name: redis
         image: 'redis:alpine'
         ports:
             - '${FORWARD_REDIS_PORT:-6379}:6379'
@@ -46,7 +49,9 @@ services:
                 - ping
             retries: 3
             timeout: 5s
+
     meilisearch:
+        container_name: meilisearch
         image: 'getmeili/meilisearch:latest'
         ports:
             - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
@@ -65,14 +70,18 @@ services:
                 - 'http://127.0.0.1:7700/health'
             retries: 3
             timeout: 5s
+
     mailpit:
+        container_name: mailpit
         image: 'axllent/mailpit:latest'
         ports:
             - '${FORWARD_MAILPIT_PORT:-1025}:1025'
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
         networks:
             - sail
+
     selenium:
+        container_name: selenium
         image: selenium/standalone-chromium
         extra_hosts:
             - 'host.docker.internal:host-gateway'
@@ -80,7 +89,9 @@ services:
             - '/dev/shm:/dev/shm'
         networks:
             - sail
+
     mariadb:
+        container_name: mariadb
         image: 'mariadb:11'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
@@ -106,6 +117,7 @@ services:
             timeout: 5s
 
     minio:
+        container_name: minio
         image: 'minio/minio:latest'
         ports:
             - '${FORWARD_MINIO_PORT:-9000}:9000'

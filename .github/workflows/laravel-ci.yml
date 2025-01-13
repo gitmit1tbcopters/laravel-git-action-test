@@ -33,11 +33,15 @@ jobs:
     - name: List running containers
       run: docker ps
 
+    - name: Get Laravel container name
+      id: laravel_container
+      run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: |
-        docker exec laravel.test composer install
-        docker exec laravel.test npm install
-        docker exec laravel.test npm run build
+        docker exec $CONTAINER_ID composer install
+        docker exec $CONTAINER_ID npm install
+        docker exec $CONTAINER_ID npm run build
 
     - name: Generate application key
       run: docker exec laravel.test php artisan key:generate
