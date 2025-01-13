@@ -44,10 +44,10 @@ jobs:
         docker exec $CONTAINER_ID npm run build
 
     - name: Generate application key
-      run: docker exec laravel.test php artisan key:generate
+      run: docker exec $CONTAINER_ID php artisan key:generate
 
     - name: Run migrations
-      run: docker exec laravel.test php artisan migrate --force
+      run: docker exec $CONTAINER_ID php artisan migrate --force
 
     - name: Run tests
-      run: docker exec laravel.test php artisan test
+      run: docker exec $CONTAINER_ID php artisan test
