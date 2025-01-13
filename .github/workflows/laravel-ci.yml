@@ -24,9 +24,6 @@ jobs:
     - name: Verify Docker Compose
       run: docker compose version
 
-    - name: Build Docker images
-      run: docker compose build
-
     - name: Set up Docker Compose
       run: docker compose up -d
 
