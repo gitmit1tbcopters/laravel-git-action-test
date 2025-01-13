@@ -35,7 +35,7 @@ jobs:
       run: docker ps -a
 
     - name: Inspect Docker networks
-      run: docker network inspect sail
+      run: docker network inspect laravel-git-action-test_sail
 
     - name: Wait for MariaDB
       run: |
