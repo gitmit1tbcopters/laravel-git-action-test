@@ -1,4 +1,4 @@
-name: Laravel CI with Custom PHP 8.4 Extensions
+name: Laravel CI
 
 on:
   push:
