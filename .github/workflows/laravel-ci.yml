@@ -37,10 +37,10 @@ jobs:
         docker exec $CONTAINER_ID npm run build
 
     - name: List Initialization Scripts
-      run: docker exec tbc_mariadb ls -l /docker-entrypoint-initdb.d/
+      run: docker exec mariadb ls -l /docker-entrypoint-initdb.d/
 
     - name: Inspect MariaDB logs
-      run: docker logs tbc_mariadb
+      run: docker logs mariadb
 
     - name: Run migrations
       run: docker exec $CONTAINER_ID php artisan migrate --force
