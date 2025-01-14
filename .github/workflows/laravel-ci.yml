@@ -108,14 +108,17 @@ jobs:
       run: |
         echo "DB_HOST=127.0.0.1" >> .env
 
-    - name: Clear Cahche
-      run: php artisan optimize
-
     - name: Generate Key
       run: php artisan key:generate
 
+    - name: Clear Cahche
+      run: php artisan optimize
+
     - name: Run Migrations
       run: php artisan migrate --force
+
+    - name: Database Seeder
+      run: php artisan db:seed
 
     - name: Run Tests
       run: php artisan test
