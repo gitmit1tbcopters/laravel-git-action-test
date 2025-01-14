@@ -95,8 +95,11 @@ jobs:
     - name: Debug Environment Variables
       run: cat .env
 
-    - name: Run Migrations
-      run: php artisan migrate --force
+    - name: Inspect MariaDB logs
+      run: docker logs mariadb
+
+    - name: Run migrations
+      run: docker exec $CONTAINER_ID php artisan migrate --force
 
     - name: Run Tests
       run: php artisan test
