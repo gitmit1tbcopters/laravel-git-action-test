@@ -29,6 +29,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+          --memory=512m
 
       redis:
         image: redis:alpine
@@ -39,6 +40,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+          --memory=512m
 
       mailpit:
         image: axllent/mailpit:latest
@@ -64,6 +66,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+          --memory=512m
 
     steps:
     - name: Checkout code
