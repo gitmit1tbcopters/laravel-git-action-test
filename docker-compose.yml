@@ -68,7 +68,7 @@ services:
             - sail
 
     mariadb:
-        container_name: tbc_mariadb
+        container_name: mariadb
         image: 'mariadb:11'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
