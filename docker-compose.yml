@@ -28,7 +28,7 @@ services:
             - redis
             - mailpit
             - selenium
-            - mariadb
+            - tbc_mariadb
             - minio
 
     redis:
