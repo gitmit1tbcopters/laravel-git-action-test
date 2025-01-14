@@ -104,6 +104,9 @@ jobs:
           exit 1
         fi
 
+    - name: Set DB Host for GitHub Actions
+      run: |
+        echo "DB_HOST=127.0.0.1" >> .env
 
     - name: Clear Cahche
       run: php artisan optimize
