@@ -60,7 +60,7 @@ jobs:
           - 9000:9000
           - 8900:8900
         options: >-
-          --health-cmd="mc alias set local http://localhost:9000 sail password && mc admin info local"
+          --health-cmd="timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
