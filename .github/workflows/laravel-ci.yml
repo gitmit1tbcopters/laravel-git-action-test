@@ -1,14 +1,14 @@
-name: Laravel CI
+name: Laravel CI with Custom PHP 8.4 Extensions
 
 on:
   push:
     branches:
-      - master
-      - development
+      - main
+      - develop
   pull_request:
     branches:
-      - master
-      - development
+      - main
+      - develop
 
 jobs:
   build-and-test:
@@ -25,41 +25,100 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping --silent"
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+      selenium:
+        image: selenium/standalone-chromium
+        ports:
+          - 4444:4444
+
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: sail
+          MINIO_ROOT_PASSWORD: password
+        ports:
+          - 9000:9000
+          - 8900:8900
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Docker Compose
-      run: docker-compose up -d
+    - name: Set up PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: >
+          gd, curl, imap, mysql, mbstring, xml, zip,
+          bcmath, soap, intl, readline, ldap, msgpack,
+          igbinary, redis, memcached, pcov, imagick
+        tools: composer
+        coverage: none
 
-    - name: Install dependencies
+    - name: Install Node.js 22
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Install Dependencies
       run: |
-        docker exec laravel.test composer install
-        docker exec laravel.test npm install
-        docker exec laravel.test npm run build
+        composer install --no-progress --prefer-dist --optimize-autoloader
+        npm install
+        npm run build
 
-    - name: Set environment variables
-      run: docker exec laravel.test cp .env.test .env
+    - name: Set up Environment Variables
+      run: cp .env.test .env
 
-    - name: Generate application key
-      run: docker exec laravel.test php artisan key:generate
-
-    - name: Run migrations
-      run: docker exec laravel.test php artisan migrate --force
-
-    - name: Run tests
-      run: docker exec laravel.test php artisan test
-
-  deploy:
-    if: github.ref == 'refs/heads/master'
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Deploy to production
+    - name: Wait for MariaDB to be healthy
       run: |
-        echo "Deployment script or command goes here."
+        for i in {1..10}; do
+          if mysqladmin ping -h127.0.0.1 -P3306 --silent; then
+            echo "MariaDB is healthy."
+            break
+          fi
+          echo "Waiting for MariaDB to be healthy..."
+          sleep 5
+        done
+        if ! mysqladmin ping -h127.0.0.1 -P3306 --silent; then
+          echo "MariaDB failed to become healthy."
+          exit 1
+        fi
+
+    - name: Set DB Host for GitHub Actions
+      run: |
+        echo "DB_HOST=127.0.0.1" >> .env
+
+    - name: Generate Key
+      run: php artisan key:generate
+
+    - name: Clear Cahche
+      run: php artisan optimize
+
+    - name: Run Migrations
+      run: php artisan migrate --force
+
+    - name: Database Seeder
+      run: php artisan db:seed
+
+    - name: Run Tests
+      run: php artisan test
