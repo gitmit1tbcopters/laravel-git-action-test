@@ -36,6 +36,9 @@ jobs:
         docker exec $CONTAINER_ID npm install
         docker exec $CONTAINER_ID npm run build
 
+    - name: List Initialization Scripts
+      run: docker exec tbc_mariadb ls -l /docker-entrypoint-initdb.d/
+
     - name: Inspect MariaDB logs
       run: docker logs tbc_mariadb
 
