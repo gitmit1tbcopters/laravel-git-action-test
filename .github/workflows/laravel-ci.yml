@@ -36,11 +36,14 @@ jobs:
         docker exec $CONTAINER_ID npm install
         docker exec $CONTAINER_ID npm run build
 
-    - name: List Initialization Scripts
-      run: docker exec mariadb ls -l /docker-entrypoint-initdb.d/
-
-    - name: Inspect MariaDB logs
-      run: docker logs mariadb
+    - name: Wait for MariaDB Health
+      run: |
+        echo "Waiting for MariaDB to be healthy..."
+        until docker inspect --format='{{.State.Health.Status}}' $(docker ps -q --filter "name=mariadb") | grep -q "healthy"; do
+        echo "MariaDB is not healthy yet. Retrying in 5 seconds..."
+        sleep 5
+        done
+        echo "MariaDB is healthy."
 
     - name: Run migrations
       run: docker exec $CONTAINER_ID php artisan migrate --force
