@@ -14,89 +14,30 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      mariadb:
-        image: mariadb:10
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: laravel
-          MYSQL_USER: sail
-          MYSQL_PASSWORD: password
-        ports:
-          - 3306:3306
-        options: >-
-          --memory=512m
-          --cpus=1
-
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
-      mailpit:
-        image: axllent/mailpit:latest
-        ports:
-          - 1025:1025
-          - 8025:8025
-
-      selenium:
-        image: selenium/standalone-chromium
-        ports:
-          - 4444:4444
-
-      minio:
-        image: minio/minio:latest
-        ports:
-          - 9000:9000
-          - 8900:8900
-        env:
-          MINIO_ROOT_USER: sail
-          MINIO_ROOT_PASSWORD: root
-        options: >-
-          --memory=512m
-          --cpus=1
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up PHP 8.4
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.4'
-        extensions: >
-          gd, curl, imap, mysql, mbstring, xml, zip,
-          bcmath, soap, intl, readline, ldap, msgpack,
-          igbinary, redis, memcached, pcov, imagick
-        tools: composer
-        coverage: none
+    - name: Copy .env.test to .env
+      run: cp .env.test .env
 
-    - name: Install Node.js 22
-      uses: actions/setup-node@v3
-      with:
-        node-version: '22'
+    - name: Set up Docker Compose
+      run: docker compose up --build -d
 
-    - name: Install Dependencies
+    - name: Get Laravel container name
+      id: laravel_container
+      run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
+
+    - name: Install dependencies
       run: |
-        composer install --no-progress --prefer-dist --optimize-autoloader
-        npm install
-        npm run build
-
-    - name: Set up Environment File
-      run: |
-        cp .env.test .env
-        php artisan key:generate
-
-    - name: Debug Environment Variables
-      run: cat .env
+        docker exec $CONTAINER_ID composer install
+        docker exec $CONTAINER_ID cp .env.test .env
+        docker exec $CONTAINER_ID php artisan optimize
+        docker exec $CONTAINER_ID npm install
+        docker exec $CONTAINER_ID npm run build
 
     - name: Inspect MariaDB logs
-      run: docker logs mariadb
+      run: docker logs tbc_mariadb
 
     - name: Run migrations
       run: docker exec $CONTAINER_ID php artisan migrate --force
