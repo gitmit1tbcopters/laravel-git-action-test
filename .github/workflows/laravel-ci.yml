@@ -32,6 +32,7 @@ jobs:
       run: |
         docker exec $CONTAINER_ID composer install
         docker exec $CONTAINER_ID cp .env.test .env
+        docker exec laravel.test php artisan key:generate
         docker exec $CONTAINER_ID php artisan optimize
         docker exec $CONTAINER_ID npm install
         docker exec $CONTAINER_ID npm run build
