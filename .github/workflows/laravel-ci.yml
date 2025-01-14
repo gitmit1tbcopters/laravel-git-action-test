@@ -60,7 +60,7 @@ jobs:
           - 9000:9000
           - 8900:8900
         options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-cmd="mc alias set local http://localhost:9000 sail password && mc admin info local"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
