@@ -48,5 +48,17 @@ jobs:
     - name: Run migrations
       run: docker exec $CONTAINER_ID php artisan migrate --force
 
+    - name: Wait for MariaDB Health
+      run: |
+        echo "Waiting for MariaDB to be healthy..."
+        until docker inspect --format='{{.State.Health.Status}}' $(docker ps -q --filter "name=mariadb") | grep -q "healthy"; do
+        echo "MariaDB is not healthy yet. Retrying in 5 seconds..."
+        sleep 5
+        done
+        echo "MariaDB is healthy."
+
+    - name: Debug Environment Variables
+      run: cat .env
+
     - name: Run Tests
       run: php artisan test
