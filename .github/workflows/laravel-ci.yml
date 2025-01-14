@@ -1,53 +1,102 @@
-name: Laravel CI
+name: Laravel CI with Custom PHP 8.4 Extensions
 
 on:
   push:
     branches:
       - main
-      - develop
   pull_request:
     branches:
       - main
-      - develop
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: laravel
+          MYSQL_USER: sail
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+      selenium:
+        image: selenium/standalone-chromium
+        ports:
+          - 4444:4444
+
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: sail
+          MINIO_ROOT_PASSWORD: root
+        ports:
+          - 9000:9000
+          - 8900:8900
+        options: >-
+          --health-cmd="mc ready local"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Copy .env.test to .env
+    - name: Set up PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: >
+          cli, dev, gd, curl, imap, mysql, mbstring, xml, zip,
+          bcmath, soap, intl, readline, ldap, msgpack,
+          igbinary, redis, memcached, pcov, imagick
+        tools: composer
+        coverage: none
+
+    - name: Install Node.js 22
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Install Dependencies
+      run: |
+        composer install --no-progress --prefer-dist --optimize-autoloader
+        npm install
+        npm run build
+
+    - name: Set up Environment Variables
       run: cp .env.test .env
 
-    - name: Set up Docker Compose
-      run: docker compose up --build -d
+    - name: Generate Key
+      run: php artisan key:generate
 
-    - name: Get Laravel container name
-      id: laravel_container
-      run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
-
-    - name: Install dependencies
-      run: |
-        docker exec $CONTAINER_ID composer install
-        docker exec $CONTAINER_ID cp .env.test .env
-        docker exec laravel.test php artisan key:generate
-        docker exec $CONTAINER_ID php artisan optimize
-        docker exec $CONTAINER_ID npm install
-        docker exec $CONTAINER_ID npm run build
-
-    - name: Wait for MariaDB Health
-      run: |
-        echo "Waiting for MariaDB to be healthy..."
-        until docker inspect --format='{{.State.Health.Status}}' $(docker ps -q --filter "name=mariadb") | grep -q "healthy"; do
-        echo "MariaDB is not healthy yet. Retrying in 5 seconds..."
-        sleep 5
-        done
-        echo "MariaDB is healthy."
-
-    - name: Run migrations
-      run: docker exec $CONTAINER_ID php artisan migrate --force
+    - name: Run Migrations
+      run: php artisan migrate --force
 
     - name: Run Tests
-      run: docker exec $CONTAINER_ID php artisan test
+      run: php artisan test
