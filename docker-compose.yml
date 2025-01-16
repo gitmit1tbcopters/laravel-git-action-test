@@ -4,7 +4,7 @@ services:
         container_name: laravel.test
         build:
             context: ./docker/8.4
-            dockerfile: Dockerfile
+            dockerfile: docker/8.4/dev/Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP}'
                 MYSQL_CLIENT: mariadb-client
