@@ -3,7 +3,7 @@ services:
     laravel.test:
         container_name: laravel.test
         build:
-            context: docker/8.4/dev
+            context: docker/8.4/test
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP}'
@@ -14,22 +14,9 @@ services:
             - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER}'
-            LARAVEL_SAIL: 1
-            SSH_USER: '${SSH_USER}'
-            SSH_PASSWORD: '${SSH_PASSWORD}'
-            INSTALL_DIR: '${INSTALL_DIR}'
-            SYMLINK_DIR: '${SYMLINK_DIR}'
-            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
-            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
-            IGNITION_LOCAL_SITES_PATH: '${PWD}'
             DB_NAME: 'mariadb'
         volumes:
             - '.:/var/www/html'
-            - laravel_test_nvm_cache:${NVM_CACHE}
-            - laravel_test_cache:${CACHE}
-            - laravel_test_local:${LOCAL}
-            - laravel_test_config:${CONFIG}
-            - laravel_test_vscode_server:${VSCODE_SERVER_CACHE}
         networks:
             - sail
         depends_on:
@@ -44,8 +31,6 @@ services:
         image: 'redis:alpine'
         ports:
             - '${FORWARD_REDIS_PORT:-6379}:6379'
-        volumes:
-            - 'sail-redis:/data'
         networks:
             - sail
         healthcheck:
@@ -89,7 +74,6 @@ services:
             MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
             MARIADB_BIND_ADDRESS: 0.0.0.0
         volumes:
-            - 'sail-mariadb:/var/lib/mysql'
             - './docker/mariadb/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
         networks:
             - sail
@@ -111,8 +95,6 @@ services:
         environment:
             MINIO_ROOT_USER: sail
             MINIO_ROOT_PASSWORD: password
-        volumes:
-            - 'sail-minio:/data'
         networks:
             - sail
         command: 'minio server /data --console-address ":8900"'
@@ -127,24 +109,3 @@ services:
 networks:
     sail:
         driver: bridge
-volumes:
-    sail-redis:
-        driver: local
-    sail-meilisearch:
-        driver: local
-    sail-mariadb:
-        driver: local
-    sail-mysql:
-        driver: local
-    sail-minio:
-        driver: local
-    laravel_test_nvm_cache:
-        driver: local
-    laravel_test_cache:
-        driver: local
-    laravel_test_local:
-        driver: local
-    laravel_test_config:
-        driver: local
-    laravel_test_vscode_server:
-        driver: local

@@ -1,4 +1,4 @@
-name: Laravel CI with Custom PHP 8.4 Extensions
+name: Laravel CI Git native
 
 on:
   push:
@@ -122,3 +122,65 @@ jobs:
 
     - name: Run Tests
       run: php artisan test
+
+    - name: Add Build Failed Tag and PR Comment
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: existingLabels } = await github.issues.listLabelsForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+
+          // Check if "build_failed" tag exists, create if not
+          if (!existingLabels.some(label => label.name === "build_failed")) {
+            await github.issues.createLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "build_failed",
+              color: "ff0000", // Red color
+              description: "The build failed during the CI process",
+            });
+          }
+
+          // Add the "build_failed" label to the pull request
+          if (context.payload.pull_request) {
+            await github.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ["build_failed"],
+            });
+
+            // Add a comment to the pull request
+            await github.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: "🚨 Build failed! A 'build_failed' label has been added to this pull request.",
+            });
+          }
+
+    - name: Remove Build Failed Tag on Success
+      if: success()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Remove the "build_failed" label if it exists
+          if (context.payload.pull_request) {
+            const { data: labels } = await github.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            if (labels.some(label => label.name === "build_failed")) {
+              await github.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: "build_failed",
+              });
+            }
+          }
