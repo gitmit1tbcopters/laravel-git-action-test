@@ -42,14 +42,12 @@ jobs:
               exit 0
             fi
             echo "Waiting for container... ($i/30)"
-
-            # Print the container logs
-            echo "Container logs so far:"
-            docker logs $CONTAINER_NAME
-
             sleep 5
           done
           echo "Container failed to become healthy in time."
+          # Print the container logs
+          echo "Container logs so far:"
+          docker logs $CONTAINER_NAME
           exit 1
 
       - name: Run Tests
