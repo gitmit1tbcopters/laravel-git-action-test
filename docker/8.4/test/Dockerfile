@@ -1,6 +1,5 @@
 FROM php:8.4-cli
 
-ARG WWWGROUP
 WORKDIR /var/www/html
 
 ENV DEBIAN_FRONTEND=noninteractive
