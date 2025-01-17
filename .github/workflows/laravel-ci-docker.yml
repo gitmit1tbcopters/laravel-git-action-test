@@ -24,6 +24,21 @@ jobs:
       - name: Set up Docker Compose
         run: docker compose -f docker-compose.test.yml up --build -d
 
+      - name: Wait for Laravel container to be healthy
+        run: |
+          echo "Waiting for laravel.test container to be healthy..."
+          for i in {1..30}; do
+            STATUS=$(docker inspect --format='{{json .State.Health.Status}}' laravel.test)
+            if [ "$STATUS" = "\"healthy\"" ]; then
+              echo "Container is healthy!"
+              exit 0
+            fi
+            echo "Waiting for container... ($i/30)"
+            sleep 5
+          done
+          echo "Container failed to become healthy in time."
+          exit 1
+
       - name: Get Laravel container name
         id: laravel_container
         run: echo "CONTAINER_ID=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
