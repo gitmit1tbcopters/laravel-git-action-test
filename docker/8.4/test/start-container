@@ -59,13 +59,5 @@ php artisan key:generate --ansi
 php artisan optimize
 
 # Execute provided command or start supervisord
-if [ $# -gt 0 ]; then
-    if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
-        exec "$@"
-    else
-        exec su-exec $WWWUSER "$@"
-    fi
-else
-    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-fi
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 
