@@ -33,9 +33,10 @@ jobs:
 
       - name: Wait for Laravel container to be healthy
         run: |
-          echo "Waiting for laravel.test container to be healthy..."
+          echo "Waiting for $CONTAINER_NAME container to be healthy..."
           for i in {1..30}; do
             STATUS=$(docker inspect --format='{{json .State.Health.Status}}' $CONTAINER_NAME)
+            echo "$STATUS"
             if [ "$STATUS" = "\"healthy\"" ]; then
               echo "Container is healthy!"
               exit 0
