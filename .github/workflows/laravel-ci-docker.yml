@@ -131,3 +131,5 @@ jobs:
             } catch (error) {
               console.error("Error removing 'build_failed' label:", error.message);
             }
+      - name: Stop running containers
+        run: docker compose down
