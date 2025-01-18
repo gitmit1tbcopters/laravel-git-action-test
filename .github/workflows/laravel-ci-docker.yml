@@ -1,0 +1,135 @@
+name: Laravel CI Docker
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Copy .env.test to .env
+        run: cp .env.test .env
+
+      - name: Set up Docker Compose
+        run: docker compose -f docker-compose.test.yml up --build -d
+
+      - name: Get Laravel container name
+        id: laravel_container
+        run: echo "CONTAINER_NAME=$(docker ps --filter "name=laravel.test" --format "{{.Names}}")" >> $GITHUB_ENV
+
+      - name: Wait for Laravel container to be healthy
+        run: |
+          echo "Waiting for $CONTAINER_NAME container to be healthy..."
+          for i in {1..30}; do
+            STATUS=$(docker inspect --format='{{json .State.Health.Status}}' $CONTAINER_NAME)
+            echo "$STATUS"
+            if [ "$STATUS" = "\"healthy\"" ]; then
+              echo "Container is healthy!"
+              exit 0
+            fi
+            echo "Waiting for container... ($i/30)"
+            sleep 5
+          done
+          echo "Container failed to become healthy in time."
+          # Print the container logs
+          echo "Container logs so far:"
+          docker logs $CONTAINER_NAME
+          exit 1
+
+      - name: Run Tests
+        run: docker exec $CONTAINER_NAME php artisan test
+
+      - name: Add Build Failed Tag and PR Comment
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue_number = context.payload.pull_request?.number;
+
+            if (!issue_number) {
+              console.warn("No pull request context available. Skipping label and comment addition.");
+              return;
+            }
+
+            try {
+              // Ensure the "build_failed" label exists
+              const { data: existingLabels } = await github.rest.issues.listLabelsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+
+              if (!existingLabels.some(label => label.name === "build_failed")) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: "build_failed",
+                  color: "ff0000",
+                  description: "The build failed during the CI process",
+                });
+              }
+
+              // Add the "build_failed" label to the pull request
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                labels: ["build_failed"],
+              });
+
+              // Add a comment to the pull request
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body: "🚨 Build failed! A 'build_failed' label has been added to this pull request.",
+              });
+            } catch (error) {
+              console.error("Error adding label or comment to pull request:", error.message);
+            }
+
+      - name: Remove Build Failed Tag on Success
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue_number = context.payload.pull_request?.number;
+
+            if (!issue_number) {
+              console.warn("No pull request context available. Skipping label removal.");
+              return;
+            }
+
+            try {
+              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+              });
+
+              if (labels.some(label => label.name === "build_failed")) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number,
+                  name: "build_failed",
+                });
+              }
+            } catch (error) {
+              console.error("Error removing 'build_failed' label:", error.message);
+            }
+      - name: Stop running containers
+        run: docker compose -f docker-compose.test.yml down
