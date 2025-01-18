@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+# Validate SUPERVISOR_PHP_USER
+if [ "$SUPERVISOR_PHP_USER" != "root" ] && [ "$SUPERVISOR_PHP_USER" != "sail" ]; then
+    echo "Error: SUPERVISOR_PHP_USER must be set to either 'sail' or 'root'."
+    exit 1
+fi
+
+# Update sail's UID if WWWUSER is set
+if [ ! -z "$WWWUSER" ]; then
+    if [[ "$WWWUSER" =~ ^[0-9]+$ ]]; then
+        usermod -u $WWWUSER sail
+    else
+        echo "Error: WWWUSER must be a numeric UID."
+        exit 1
+    fi
+fi
+
+# Ensure /.composer exists with proper permissions
+if [ ! -d /.composer ]; then
+    mkdir -p /.composer
+fi
+
+chmod -R ugo+rw /.composer
+
+# Check DB status
+if [ -n "$DB_NAME" ]; then
+    # Wait for the database to be ready
+    echo "Waiting for database connection..."
+    while ! nc -z "$DB_NAME" "3306"; do
+      sleep 1
+    done
+    echo "Database is ready."
+else
+    echo "Database not found."
+    exit 1
+fi
+# Set the safe directory
+git config --global --add safe.directory /var/www/html
+
+# Change directory to the backend folder
+cd /var/www/html
+
+# Run composer install if composer.json exists
+if [ -f composer.json ]; then
+  echo "Running composer install..."
+  composer install
+fi
+
+# Source NVM and run yarn install if package.json exists
+if [ -f package.json ]; then
+  echo "Running npm install..."
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  # Check if the Node.js version specified in .nvmrc is installed
+  NODE_VERSION=$(cat .nvmrc)
+  if ! nvm ls "$NODE_VERSION" > /dev/null 2>&1; then
+    nvm install "$NODE_VERSION"
+  fi
+
+  # Use the Node.js version specified in .nvmrc
+  nvm use "$NODE_VERSION"
+
+  # Ensure Node.js is globally available
+  echo "export PATH=\"\$HOME/.nvm/versions/node/$NODE_VERSION/bin:\$PATH\"" >> ~/.bashrc
+  source ~/.bashrc
+
+  npm install --frozen-lockfile
+fi
+
+# Run Laravel commands
+echo "Running Laravel setup..."
+php artisan key:generate --ansi
+php artisan optimize
+
+# Check if the password has already been set
+if [ ! -f /var/run/sshd/password_set ]; then
+    echo "${SSH_USER}:${SSH_PASSWORD}" | chpasswd
+    touch /var/run/sshd/password_set
+fi
+
+# Run setup_ide.sh
+/usr/local/bin/setup_ide
+
+# Execute provided command or start supervisord
+if [ $# -gt 0 ]; then
+    if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
+        exec "$@"
+    else
+        exec su-exec $WWWUSER "$@"
+    fi
+else
+    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+fi
+
