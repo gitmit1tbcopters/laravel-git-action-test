@@ -12,17 +12,17 @@ services:
         ports:
             - '${APP_PORT:-80}:80'
             - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+            - '2222:22'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
             SSH_USER: '${SSH_USER}'
             SSH_PASSWORD: '${SSH_PASSWORD}'
-            INSTALL_DIR: '${INSTALL_DIR}'
-            SYMLINK_DIR: '${SYMLINK_DIR}'
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
             DB_NAME: 'mariadb'
+            SUPERVISOR_PHP_COMMAND: '${SUPERVISOR_PHP_COMMAND}'
         volumes:
             - '.:/var/www/html'
             - laravel_test_nvm_cache:${NVM_CACHE}
@@ -30,6 +30,7 @@ services:
             - laravel_test_local:${LOCAL}
             - laravel_test_config:${CONFIG}
             - laravel_test_vscode_server:${VSCODE_SERVER_CACHE}
+            - laravel_test_global_composer:${GLOBAL_COMPOSER_DIR}
         networks:
             - sail
         depends_on:
@@ -147,4 +148,6 @@ volumes:
     laravel_test_config:
         driver: local
     laravel_test_vscode_server:
+        driver: local
+    laravel_test_global_composer:
         driver: local

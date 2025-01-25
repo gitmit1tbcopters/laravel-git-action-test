@@ -16,12 +16,16 @@ if [ ! -z "$WWWUSER" ]; then
     fi
 fi
 
-# Ensure /.composer exists with proper permissions
+echo "Setting password for sail user..."
+# setup ssh
+/usr/local/bin/setup_ssh
+
+# Ensure /.composer exists
 if [ ! -d /.composer ]; then
     mkdir -p /.composer
 fi
 
-chmod -R ugo+rw /.composer
+chown -R sail:sail /home/sail
 
 # Check DB status
 if [ -n "$DB_NAME" ]; then
@@ -38,57 +42,67 @@ fi
 # Set the safe directory
 git config --global --add safe.directory /var/www/html
 
-# Change directory to the backend folder
+# Change directory to the project folder
 cd /var/www/html
 
 # Run composer install if composer.json exists
 if [ -f composer.json ]; then
   echo "Running composer install..."
   composer install
+  echo "Running Laravel Vapor setup..."
+  echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c "composer global require laravel/vapor-cli --update-with-dependencies 2>&1"
+  echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c 'line="export PATH=\"\$PATH:\$HOME/.composer/vendor/bin\""; if ! grep -Fxq "$line" ~/.bashrc; then echo "$line" >> ~/.bashrc; fi; source ~/.bashrc'
 fi
 
-# Source NVM and run yarn install if package.json exists
-if [ -f package.json ]; then
-  echo "Running npm install..."
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-  # Check if the Node.js version specified in .nvmrc is installed
-  NODE_VERSION=$(cat .nvmrc)
-  if ! nvm ls "$NODE_VERSION" > /dev/null 2>&1; then
-    nvm install "$NODE_VERSION"
+# Check if package.json exists
+if [ -f package.json ]; then
+  echo "package.json found. Preparing to install Node.js and dependencies..."
+
+  # Set NVM_DIR and source NVM if it exists
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+    NODE_VERSION=$(cat .nvmrc)
+  # Check if NODE_VERSION is set and install/use it
+  if [ -n "$NODE_VERSION" ]; then
+    echo "Checking for Node.js version $NODE_VERSION..."
+
+    if nvm ls "$NODE_VERSION" > /dev/null 2>&1; then
+      echo "Node.js version $NODE_VERSION is already installed. Using it..."
+    else
+      echo "Node.js version $NODE_VERSION is not installed. Installing it now..."
+      nvm install "$NODE_VERSION"
+    fi
+
+    # Use the specified Node.js version
+    nvm use "$NODE_VERSION"
+    echo "Using Node.js version $NODE_VERSION."
+
+    # Add Node.js binary path to global PATH for all users
+    n=$(which node); n=${n%/bin/node}; chmod -R 755 $n/bin/*; cp -r $n/{bin,lib,share} /usr/local
+  else
+    echo "NODE_VERSION is not set. Skipping Node.js setup."
   fi
 
-  # Use the Node.js version specified in .nvmrc
-  nvm use "$NODE_VERSION"
-
-  # Ensure Node.js is globally available
-  echo "export PATH=\"\$HOME/.nvm/versions/node/$NODE_VERSION/bin:\$PATH\"" >> ~/.bashrc
-  source ~/.bashrc
-
-  npm install --frozen-lockfile
+  # Run npm install as the specified user
+  echo "Running npm install as $SSH_USER..."
+  echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c "npm install --frozen-lockfile 2>&1"
+else
+  echo "No package.json file found. Skipping npm install."
 fi
 
 # Run Laravel commands
 echo "Running Laravel setup..."
-php artisan key:generate --ansi
-php artisan optimize
+echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c  "php artisan key:generate --ansi && php artisan optimize 2>&1"
 
-# Check if the password has already been set
-if [ ! -f /var/run/sshd/password_set ]; then
-    echo "${SSH_USER}:${SSH_PASSWORD}" | chpasswd
-    touch /var/run/sshd/password_set
-fi
-
-# Run setup_ide.sh
-/usr/local/bin/setup_ide
 
 # Execute provided command or start supervisord
 if [ $# -gt 0 ]; then
     if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
         exec "$@"
     else
-        exec su-exec $WWWUSER "$@"
+        exec sudo -u $WWWUSER "$@"
     fi
 else
     exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
