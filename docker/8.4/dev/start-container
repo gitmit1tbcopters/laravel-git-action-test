@@ -48,7 +48,7 @@ cd /var/www/html
 # Run composer install if composer.json exists
 if [ -f composer.json ]; then
   echo "Running composer install..."
-  composer install
+  echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c "composer install --no-suggest --no-interaction 2>&1"
   echo "Running Laravel Vapor setup..."
   echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c "composer global require laravel/vapor-cli --update-with-dependencies 2>&1"
   echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c 'line="export PATH=\"\$PATH:\$HOME/.composer/vendor/bin\""; if ! grep -Fxq "$line" ~/.bashrc; then echo "$line" >> ~/.bashrc; fi; source ~/.bashrc'
