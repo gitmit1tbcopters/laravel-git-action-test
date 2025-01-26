@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.4-fpm
 
 ARG WWWGROUP
 
@@ -30,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j$(nproc) gd zip pdo_mysql intl bcmath soap ldap && \
-    pecl install imap swoole xdebug && \
-    docker-php-ext-enable imap swoole xdebug
+    pecl install imap xdebug-3.4.1 && \
+    docker-php-ext-enable imap xdebug
 
 # Install Composer
 COPY --from=composer:2.8.4 /usr/bin/composer /usr/bin/composer
