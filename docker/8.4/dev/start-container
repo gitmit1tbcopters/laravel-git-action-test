@@ -96,7 +96,7 @@ fi
 echo "Running Laravel setup..."
 echo "${SSH_PASSWORD}" | sudo -S -u "${SSH_USER}" bash -c  "php artisan key:generate --ansi && php artisan optimize 2>&1"
 
-
+chown -R sail:sail /var/www/html
 # Execute provided command or start supervisord
 if [ $# -gt 0 ]; then
     if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
