@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Define the alias for Vapor
+alias vapor="php vendor/bin/vapor"
+
+# Make sure the alias is applied to the current session
+if [ -f vendor/bin/vapor ]; then
+  echo "Vapor alias created for this project."
+else
+  echo "Warning: vendor/bin/vapor not found in this directory."
+fi
+
+# Optional: Test the alias to confirm it works
+if command -v vapor > /dev/null; then
+  echo "Vapor command is available. Version:"
+  vapor --version
+else
+  echo "Failed to set up the vapor alias."
+fi
+
+# Proceed with any additional commands you want in startup.sh
