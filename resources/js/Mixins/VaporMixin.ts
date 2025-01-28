@@ -1,8 +1,8 @@
-import Vapor from "laravel-vapor"
+import Vapor from 'laravel-vapor';
 
-const VaporMixin={
+const VaporMixin = {
     methods: {
-        asset: Vapor.asset
+        asset: Vapor.asset,
     },
 }
 

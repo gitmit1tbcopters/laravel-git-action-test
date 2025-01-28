@@ -28,6 +28,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Configure and install PHP extensions
+# RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
+#     docker-php-ext-install -j$(nproc) gd zip pdo_mysql intl bcmath soap ldap pcntl && \
+#     pecl install imap swoole xdebug-3.4.1 && \
+#     docker-php-ext-enable imap xdebug swoole
+
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j$(nproc) gd zip pdo_mysql intl bcmath soap ldap && \
     pecl install imap xdebug-3.4.1 && \

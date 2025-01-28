@@ -11,7 +11,6 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $test = 'Hello, World!';
         return Inertia::render('Welcome', [
             'canLogin' => Route::has('login'),
             'canRegister' => Route::has('register'),
