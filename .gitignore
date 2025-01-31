@@ -1,5 +1,7 @@
 /.phpunit.cache
 /bootstrap/ssr
+/bootstrap/ssr
+/bootstrap/ssr
 /node_modules
 /public/build
 /public/hot
@@ -22,3 +24,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/ide
+.vapor/
+.env.staging

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Ensure SSH_USER and SSH_PASSWORD are set before proceeding
+if [ -z "$SSH_USER" ] || [ -z "$SSH_PASSWORD" ]; then
+  echo "SSH_USER or SSH_PASSWORD environment variables are not set."
+  exit 1
+fi
+
+
+# Set the password for the SSH user
+if [ ! -f /var/run/sshd/password_set ]; then
+  echo "Setting password for user $SSH_USER:$SSH_PASSWORD"
+  echo "${SSH_USER}:${SSH_PASSWORD}" | chpasswd
+  touch /var/run/sshd/password_set
+  echo "Password for $SSH_USER set."
+fi
